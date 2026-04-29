@@ -11,3 +11,14 @@ Route::get('/open-box/{product}', [ProductController::class, 'open'])->name('pro
 
 Route::get('/test', [ProductController::class, 'test'])->name('test');
 Route::post('/resultado', [ProductController::class, 'resultado'])->name('resultado');
+
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/dashboard', [ProductController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard/products/create', [ProductController::class, 'create'])->name('dashboard.products.create');
+    Route::post('/dashboard/products', [ProductController::class, 'store'])->name('dashboard.products.store');
+    Route::get('/dashboard/products/{product}/edit', [ProductController::class, 'edit'])->name('dashboard.products.edit');
+    Route::put('/dashboard/products/{product}', [ProductController::class, 'update'])->name('dashboard.products.update');
+    Route::delete('/dashboard/products/{product}', [ProductController::class, 'destroy'])->name('dashboard.products.destroy');
+});
+
+require __DIR__.'/auth.php';

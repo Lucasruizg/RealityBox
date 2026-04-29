@@ -15,6 +15,18 @@
                 <a href="{{ route('home') }}">Inicio</a>
                 <a href="{{ route('products.index') }}">Cajas</a>
                 <a href="{{ route('test') }}">Test</a>
+                @auth
+                    @if(auth()->user()->is_admin)
+                        <a href="{{ route('dashboard') }}">Dashboard</a>
+                    @endif
+                    <form action="{{ route('logout') }}" method="POST" class="nav-logout">
+                        @csrf
+                        <button type="submit">Salir</button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}">Login</a>
+                    <a href="{{ route('register') }}">Registro</a>
+                @endauth
             </nav>
         </div>
     </header>

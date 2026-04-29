@@ -85,6 +85,70 @@ class ProductController extends Controller
         return view('products.show', compact('product', 'relatedProducts', 'possibleRewards', 'probabilities'));
     }
 
+    public function dashboard()
+    {
+        $products = Product::latest()->paginate(10);
+        $totalProducts = Product::count();
+        $featuredCount = Product::where('is_featured', 1)->count();
+        $popularCount = Product::where('is_popular', 1)->count();
+        $averagePrice = Product::avg('price') ?? 0;
+        $categories = Product::select('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+
+        return view('dashboard', compact(
+            'products',
+            'totalProducts',
+            'featuredCount',
+            'popularCount',
+            'averagePrice',
+            'categories'
+        ));
+    }
+
+    public function create()
+    {
+        $categories = $this->dashboardCategories();
+        $product = new Product();
+
+        return view('dashboard-form', compact('product', 'categories'));
+    }
+
+    public function store(Request $request)
+    {
+        Product::create($this->validatedProductData($request));
+
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'Caja creada correctamente.');
+    }
+
+    public function edit(Product $product)
+    {
+        $categories = $this->dashboardCategories();
+
+        return view('dashboard-form', compact('product', 'categories'));
+    }
+
+    public function update(Request $request, Product $product)
+    {
+        $product->update($this->validatedProductData($request));
+
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'Caja actualizada correctamente.');
+    }
+
+    public function destroy(Product $product)
+    {
+        $product->delete();
+
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'Caja eliminada correctamente.');
+    }
+
     public function test()
     {
         return view('test');
@@ -206,6 +270,37 @@ class ProductController extends Controller
             'epico' => 7.2,
             'legendario' => 0.8,
         ];
+    }
+
+    private function dashboardCategories(): array
+    {
+        return [
+            'gaming',
+            'fitness',
+            'moda',
+            'franquicia',
+            'tech',
+            'cards',
+            'lowcost',
+        ];
+    }
+
+    private function validatedProductData(Request $request): array
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric|min:0',
+            'image' => 'nullable|string|max:255',
+            'category' => 'required|string|max:255',
+            'rating' => 'required|numeric|min:0|max:5',
+            'reviews' => 'required|integer|min:0',
+        ]);
+
+        $data['is_popular'] = $request->boolean('is_popular');
+        $data['is_featured'] = $request->boolean('is_featured');
+
+        return $data;
     }
 
     private function getRandomRewardByRarity(array $categoryRewards, string $rarity): ?array
