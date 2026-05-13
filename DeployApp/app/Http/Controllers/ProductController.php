@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BoxOpening;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
@@ -11,11 +13,7 @@ class ProductController extends Controller
     {
         $featuredProducts = Product::where('is_featured', 1)->take(8)->get();
         $popularProducts = Product::where('is_popular', 1)->take(6)->get();
-
-        $categories = Product::select('category')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
+        $categories = $this->productCategories();
 
         return view('welcome', compact('featuredProducts', 'popularProducts', 'categories'));
     }
@@ -45,28 +43,19 @@ class ProductController extends Controller
             }
         }
 
-        if ($request->filled('sort')) {
-            if ($request->sort === 'price_asc') {
-                $query->orderBy('price', 'asc');
-            } elseif ($request->sort === 'price_desc') {
-                $query->orderBy('price', 'desc');
-            } elseif ($request->sort === 'rating') {
-                $query->orderBy('rating', 'desc');
-            } else {
-                $query->latest();
-            }
+        if ($request->sort === 'price_asc') {
+            $query->orderBy('price', 'asc');
+        } elseif ($request->sort === 'price_desc') {
+            $query->orderBy('price', 'desc');
+        } elseif ($request->sort === 'rating') {
+            $query->orderBy('rating', 'desc');
         } else {
             $query->latest();
         }
 
         $products = $query->paginate(12)->withQueryString();
-
         $popularProducts = Product::where('is_popular', 1)->take(6)->get();
-
-        $categories = Product::select('category')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
+        $categories = $this->productCategories();
 
         return view('products.index', compact('products', 'popularProducts', 'categories'));
     }
@@ -92,10 +81,7 @@ class ProductController extends Controller
         $featuredCount = Product::where('is_featured', 1)->count();
         $popularCount = Product::where('is_popular', 1)->count();
         $averagePrice = Product::avg('price') ?? 0;
-        $categories = Product::select('category')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
+        $categories = $this->productCategories();
 
         return view('dashboard', compact(
             'products',
@@ -173,13 +159,7 @@ class ProductController extends Controller
             'lowcost' => 0,
         ];
 
-        $answers = [
-            $request->interes,
-            $request->estilo,
-            $request->premio,
-        ];
-
-        foreach ($answers as $answer) {
+        foreach ([$request->interes, $request->estilo, $request->premio] as $answer) {
             if (array_key_exists($answer, $scores)) {
                 $scores[$answer] += 3;
             }
@@ -189,17 +169,13 @@ class ProductController extends Controller
             $scores['lowcost'] += 4;
             $scores['cards'] += 1;
         } elseif ($request->presupuesto === 'medio') {
-            $scores['gaming'] += 1;
-            $scores['fitness'] += 1;
-            $scores['moda'] += 1;
-            $scores['franquicia'] += 1;
-            $scores['tech'] += 1;
-            $scores['cards'] += 1;
+            foreach (['gaming', 'fitness', 'moda', 'franquicia', 'tech', 'cards'] as $category) {
+                $scores[$category] += 1;
+            }
         } elseif ($request->presupuesto === 'premium') {
-            $scores['gaming'] += 2;
-            $scores['moda'] += 2;
-            $scores['tech'] += 2;
-            $scores['franquicia'] += 2;
+            foreach (['gaming', 'moda', 'tech', 'franquicia'] as $category) {
+                $scores[$category] += 2;
+            }
         }
 
         arsort($scores);
@@ -214,10 +190,16 @@ class ProductController extends Controller
 
     public function open(Product $product)
     {
+        $user = auth()->user();
+
+        if ($user && $user->demo_balance < $product->price) {
+            return redirect()
+                ->route('products.show', $product)
+                ->with('status', 'No tienes saldo demo suficiente para abrir esta caja.');
+        }
+
         $probabilities = $this->getRewardProbabilities();
-
         $rewards = $this->getRewardsByCategory();
-
         $categoryRewards = $rewards[$product->category] ?? $rewards['default'];
 
         $rarity = $this->rollRarity();
@@ -231,9 +213,26 @@ class ProductController extends Controller
         $sellPrice = round($reward['value'] * 0.70, 2);
         $rarityLabel = $this->getRarityLabel($rarity);
         $rarityClass = $rarity;
+        $opening = BoxOpening::create([
+            'user_id' => $user?->id,
+            'session_id' => session()->getId(),
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'reward_name' => $reward['name'],
+            'rarity' => $rarity,
+            'reward_value' => $reward['value'],
+            'sell_price' => $sellPrice,
+            'status' => 'pending',
+        ]);
+
+        if ($user) {
+            $user->decrement('demo_balance', $product->price);
+            $user->refresh();
+        }
 
         return view('products.open', compact(
             'product',
+            'opening',
             'reward',
             'sellPrice',
             'rarity',
@@ -241,6 +240,50 @@ class ProductController extends Controller
             'rarityClass',
             'probabilities'
         ));
+    }
+
+    public function inventory()
+    {
+        $user = auth()->user();
+
+        $openings = $user->boxOpenings()
+            ->with('product')
+            ->latest()
+            ->paginate(12);
+
+        $stats = [
+            'total' => $user->boxOpenings()->count(),
+            'kept' => $user->boxOpenings()->where('status', 'kept')->count(),
+            'redeemed' => $user->boxOpenings()->where('status', 'redeemed')->count(),
+            'sold' => $user->boxOpenings()->where('status', 'sold')->count(),
+        ];
+
+        return view('inventory', compact('openings', 'stats'));
+    }
+
+    public function updateOpeningStatus(BoxOpening $boxOpening, string $action)
+    {
+        abort_unless($boxOpening->user_id === auth()->id(), 403);
+
+        if ($boxOpening->status !== 'pending') {
+            return back()->with('status', 'Esta recompensa ya fue gestionada.');
+        }
+
+        $status = match ($action) {
+            'keep' => 'kept',
+            'redeem' => 'redeemed',
+            'sell' => 'sold',
+        };
+
+        $boxOpening->update(['status' => $status]);
+
+        if ($status === 'sold') {
+            auth()->user()->increment('demo_balance', $boxOpening->sell_price);
+        }
+
+        return redirect()
+            ->route('inventory')
+            ->with('status', 'Recompensa actualizada correctamente.');
     }
 
     private function rollRarity(): string
@@ -285,14 +328,31 @@ class ProductController extends Controller
         ];
     }
 
+    private function productCategories()
+    {
+        return Product::select('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+    }
+
     private function validatedProductData(Request $request): array
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
-            'image' => 'nullable|string|max:255',
-            'category' => 'required|string|max:255',
+            'image' => [
+                'nullable',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if ($value && !file_exists(public_path('images/products/' . $value))) {
+                        $fail('La imagen indicada no existe en public/images/products.');
+                    }
+                },
+            ],
+            'category' => ['required', 'string', Rule::in($this->dashboardCategories())],
             'rating' => 'required|numeric|min:0|max:5',
             'reviews' => 'required|integer|min:0',
         ]);
@@ -329,90 +389,6 @@ class ProductController extends Controller
 
     private function getRewardsByCategory(): array
     {
-        return [
-            'gaming' => [
-                ['name' => 'Sticker pack gamer + llavero', 'rarity' => 'comun', 'value' => 4.99],
-                ['name' => 'Pulsera gamer', 'rarity' => 'comun', 'value' => 5.99],
-                ['name' => 'Mousepad mini', 'rarity' => 'comun', 'value' => 9.99],
-                ['name' => 'Taza gamer + mousepad XL', 'rarity' => 'raro', 'value' => 24.99],
-                ['name' => 'Gorra gaming', 'rarity' => 'raro', 'value' => 29.99],
-                ['name' => 'Auriculares gaming RGB', 'rarity' => 'epico', 'value' => 69.99],
-                ['name' => 'Teclado mecánico compacto', 'rarity' => 'epico', 'value' => 89.99],
-                ['name' => 'Setup gaming completo: teclado, ratón, auriculares y silla', 'rarity' => 'legendario', 'value' => 599.99],
-            ],
-
-            'fitness' => [
-                ['name' => 'Pulsera fitness + sticker motivacional', 'rarity' => 'comun', 'value' => 2.99],
-                ['name' => 'Toalla gym básica', 'rarity' => 'comun', 'value' => 6.99],
-                ['name' => 'Shaker básico', 'rarity' => 'comun', 'value' => 8.99],
-                ['name' => 'Shaker premium + toalla gym', 'rarity' => 'raro', 'value' => 17.99],
-                ['name' => 'Banda elástica pro', 'rarity' => 'raro', 'value' => 24.99],
-                ['name' => 'Pack entrenamiento completo', 'rarity' => 'epico', 'value' => 49.99],
-                ['name' => 'Botella térmica + accesorios gym', 'rarity' => 'epico', 'value' => 59.99],
-                ['name' => 'Pack fitness premium: smartband, suplementos y material completo', 'rarity' => 'legendario', 'value' => 399.99],
-            ],
-
-            'moda' => [
-                ['name' => 'Llavero sneaker + stickers', 'rarity' => 'comun', 'value' => 4.99],
-                ['name' => 'Calcetines streetwear', 'rarity' => 'comun', 'value' => 9.99],
-                ['name' => 'Lace pack sneaker', 'rarity' => 'comun', 'value' => 12.99],
-                ['name' => 'Gorra streetwear', 'rarity' => 'raro', 'value' => 24.99],
-                ['name' => 'Camiseta urban premium', 'rarity' => 'raro', 'value' => 34.99],
-                ['name' => 'Hoodie streetwear', 'rarity' => 'epico', 'value' => 69.99],
-                ['name' => 'Pack outfit básico', 'rarity' => 'epico', 'value' => 89.99],
-                ['name' => 'Zapatillas edición especial', 'rarity' => 'legendario', 'value' => 599.99],
-            ],
-
-            'franquicia' => [
-                ['name' => 'Carta random + sticker pack', 'rarity' => 'comun', 'value' => 3.99],
-                ['name' => 'Mini accesorio temático', 'rarity' => 'comun', 'value' => 5.99],
-                ['name' => 'Poster pequeño coleccionable', 'rarity' => 'comun', 'value' => 8.99],
-                ['name' => 'Booster pack + mini póster', 'rarity' => 'raro', 'value' => 19.99],
-                ['name' => 'Mini figura temática', 'rarity' => 'raro', 'value' => 29.99],
-                ['name' => 'Figura premium + sobres especiales', 'rarity' => 'epico', 'value' => 69.99],
-                ['name' => 'Collector bundle temático', 'rarity' => 'epico', 'value' => 89.99],
-                ['name' => 'Carta ultra rara / elite collector box', 'rarity' => 'legendario', 'value' => 549.99],
-            ],
-
-            'tech' => [
-                ['name' => 'Cable organizer + paño tech', 'rarity' => 'comun', 'value' => 3.99],
-                ['name' => 'Accesorio USB', 'rarity' => 'comun', 'value' => 7.99],
-                ['name' => 'Soporte móvil básico', 'rarity' => 'comun', 'value' => 9.99],
-                ['name' => 'Cargador rápido + soporte móvil', 'rarity' => 'raro', 'value' => 22.99],
-                ['name' => 'Soporte escritorio pro', 'rarity' => 'raro', 'value' => 29.99],
-                ['name' => 'Auriculares bluetooth premium', 'rarity' => 'epico', 'value' => 69.99],
-                ['name' => 'Powerbank premium', 'rarity' => 'epico', 'value' => 79.99],
-                ['name' => 'Pack tech premium: smartwatch, auriculares y powerbank top', 'rarity' => 'legendario', 'value' => 499.99],
-            ],
-
-            'cards' => [
-                ['name' => '1 sobre random', 'rarity' => 'comun', 'value' => 1.99],
-                ['name' => 'Pack fundas básicas', 'rarity' => 'comun', 'value' => 4.99],
-                ['name' => 'Dado + token pack', 'rarity' => 'comun', 'value' => 6.99],
-                ['name' => '3 sobres random', 'rarity' => 'raro', 'value' => 9.99],
-                ['name' => 'Deck box + booster', 'rarity' => 'raro', 'value' => 19.99],
-                ['name' => 'Bundle TCG especial', 'rarity' => 'epico', 'value' => 34.99],
-                ['name' => 'Playmat + sobres especiales', 'rarity' => 'epico', 'value' => 49.99],
-                ['name' => 'Collector booster / carta chase', 'rarity' => 'legendario', 'value' => 249.99],
-            ],
-
-            'lowcost' => [
-                ['name' => 'Sticker random', 'rarity' => 'comun', 'value' => 0.20],
-                ['name' => 'Mini pegatina premium', 'rarity' => 'comun', 'value' => 0.50],
-                ['name' => 'Carta random básica', 'rarity' => 'comun', 'value' => 0.99],
-                ['name' => 'Llavero random', 'rarity' => 'raro', 'value' => 1.99],
-                ['name' => 'Mini accesorio sorpresa', 'rarity' => 'raro', 'value' => 2.99],
-                ['name' => 'Mini premio sorpresa premium', 'rarity' => 'epico', 'value' => 9.99],
-                ['name' => 'Pack lowcost top', 'rarity' => 'epico', 'value' => 14.99],
-                ['name' => 'Premio sorpresa premium', 'rarity' => 'legendario', 'value' => 49.99],
-            ],
-
-            'default' => [
-                ['name' => 'Detalle sorpresa básico', 'rarity' => 'comun', 'value' => 3.99],
-                ['name' => 'Producto especial', 'rarity' => 'raro', 'value' => 14.99],
-                ['name' => 'Premio premium', 'rarity' => 'epico', 'value' => 49.99],
-                ['name' => 'Premio legendario', 'rarity' => 'legendario', 'value' => 299.99],
-            ],
-        ];
+        return config('rewards');
     }
 }

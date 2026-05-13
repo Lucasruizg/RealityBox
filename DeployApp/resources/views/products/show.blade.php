@@ -2,10 +2,16 @@
 
 @section('content')
 <section class="section container">
+    @if(session('status'))
+        <div class="dashboard-alert">
+            {{ session('status') }}
+        </div>
+    @endif
+
     <div class="product-detail">
         <div class="product-box-visual">
-            @if($product->image)
-                <img src="{{ asset('images/products/' . $product->image) }}" alt="{{ $product->name }}" class="product-detail-image">
+            @if($product->image_url)
+                <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="product-detail-image">
             @else
                 <div class="fake-box">
                     <span>RealityBox</span>
@@ -81,8 +87,8 @@
     <div class="grid cards-grid">
         @foreach($relatedProducts as $item)
             <div class="card compact">
-                @if($item->image)
-                    <img src="{{ asset('images/products/' . $item->image) }}" alt="{{ $item->name }}" class="product-image">
+                @if($item->image_url)
+                    <img src="{{ $item->image_url }}" alt="{{ $item->name }}" class="product-image">
                 @else
                     <div class="fake-image">RealityBox</div>
                 @endif

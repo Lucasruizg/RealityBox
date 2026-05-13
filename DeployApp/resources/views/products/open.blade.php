@@ -80,9 +80,22 @@
         </div>
 
         <div class="hero-actions center hidden-reward" id="rewardActions">
-            <button class="btn btn-primary" type="button">Quedármelo</button>
-            <button class="btn btn-secondary" type="button">Canjearlo</button>
-            <button class="btn btn-dark" type="button">Venderlo</button>
+            @auth
+                <form action="{{ route('openings.action', [$opening, 'keep']) }}" method="POST">
+                    @csrf
+                    <button class="btn btn-primary" type="submit">Quedármelo</button>
+                </form>
+                <form action="{{ route('openings.action', [$opening, 'redeem']) }}" method="POST">
+                    @csrf
+                    <button class="btn btn-secondary" type="submit">Canjearlo</button>
+                </form>
+                <form action="{{ route('openings.action', [$opening, 'sell']) }}" method="POST">
+                    @csrf
+                    <button class="btn btn-dark" type="submit">Venderlo</button>
+                </form>
+            @else
+                <a href="{{ route('login') }}" class="btn btn-primary">Inicia sesión para guardarlo</a>
+            @endauth
         </div>
 
         <div class="probability-box">

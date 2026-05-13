@@ -9,6 +9,13 @@ Route::get('/products', [ProductController::class, 'index'])->name('products.ind
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/open-box/{product}', [ProductController::class, 'open'])->name('products.open');
 
+Route::middleware('auth')->group(function () {
+    Route::get('/inventory', [ProductController::class, 'inventory'])->name('inventory');
+    Route::post('/openings/{boxOpening}/{action}', [ProductController::class, 'updateOpeningStatus'])
+        ->whereIn('action', ['keep', 'redeem', 'sell'])
+        ->name('openings.action');
+});
+
 Route::get('/test', [ProductController::class, 'test'])->name('test');
 Route::post('/resultado', [ProductController::class, 'resultado'])->name('resultado');
 

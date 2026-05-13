@@ -63,8 +63,8 @@
                         <tr>
                             <td>
                                 <div class="dashboard-product">
-                                    @if($product->image)
-                                        <img src="{{ asset('images/products/' . $product->image) }}" alt="{{ $product->name }}">
+                                    @if($product->image_url)
+                                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}">
                                     @else
                                         <div class="dashboard-product-placeholder">RB</div>
                                     @endif

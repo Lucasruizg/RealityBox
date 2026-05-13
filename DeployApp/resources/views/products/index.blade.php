@@ -46,8 +46,8 @@
     <div class="grid cards-grid">
         @foreach($popularProducts as $product)
             <div class="card compact">
-                @if($product->image)
-                    <img src="{{ asset('images/products/' . $product->image) }}" alt="{{ $product->name }}" class="product-image">
+                @if($product->image_url)
+                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="product-image">
                 @else
                     <div class="fake-image">RealityBox</div>
                 @endif
@@ -66,8 +66,8 @@
     <div class="grid cards-grid">
         @forelse($products as $product)
             <div class="card">
-                @if($product->image)
-                    <img src="{{ asset('images/products/' . $product->image) }}" alt="{{ $product->name }}" class="product-image">
+                @if($product->image_url)
+                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="product-image">
                 @else
                     <div class="fake-image">RealityBox</div>
                 @endif

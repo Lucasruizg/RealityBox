@@ -16,6 +16,8 @@
                 <a href="{{ route('products.index') }}">Cajas</a>
                 <a href="{{ route('test') }}">Test</a>
                 @auth
+                    <a href="{{ route('inventory') }}">Inventario</a>
+                    <span class="nav-balance">{{ number_format(auth()->user()->demo_balance, 2) }} €</span>
                     @if(auth()->user()->is_admin)
                         <a href="{{ route('dashboard') }}">Dashboard</a>
                     @endif

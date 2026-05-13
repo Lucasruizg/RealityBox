@@ -11,11 +11,12 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => 'lucas@realitybox.local'],
+            ['email' => 'admin@realitybox.local'],
             [
-                'name' => 'lucas',
-                'password' => Hash::make('lucasrg01'),
+                'name' => 'admin',
+                'password' => Hash::make('1234'),
                 'is_admin' => true,
+                'demo_balance' => 500,
             ]
         );
     }

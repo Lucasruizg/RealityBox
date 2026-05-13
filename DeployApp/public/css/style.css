@@ -69,6 +69,18 @@ nav a:hover {
     color: #fff;
 }
 
+.nav-balance {
+    display: inline-block;
+    margin-left: 20px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(245,158,11,0.14);
+    border: 1px solid rgba(245,158,11,0.28);
+    color: #fde68a;
+    font-weight: 800;
+    font-size: 13px;
+}
+
 .hero {
     padding: 70px 0 40px;
     background: linear-gradient(135deg, #111827, #1e293b, #3b0764);
@@ -622,7 +634,10 @@ nav a:hover {
 
 .dashboard-stats div,
 .dashboard-panel,
-.dashboard-form {
+.dashboard-form,
+.wallet-card,
+.inventory-card,
+.empty-state {
     background:
         radial-gradient(circle at top right, rgba(139,92,246,0.12), transparent 34%),
         linear-gradient(180deg, #111827, #0b1220);
@@ -633,6 +648,26 @@ nav a:hover {
 
 .dashboard-stats div {
     padding: 20px;
+}
+
+.wallet-card {
+    padding: 18px 22px;
+    min-width: 180px;
+}
+
+.wallet-card span,
+.wallet-card strong {
+    display: block;
+}
+
+.wallet-card span {
+    color: #cbd5e1;
+    font-size: 13px;
+}
+
+.wallet-card strong {
+    margin-top: 6px;
+    font-size: 28px;
 }
 
 .dashboard-stats span,
@@ -739,6 +774,73 @@ nav a:hover {
 
 .dashboard-actions form {
     margin: 0;
+}
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
+
+.inventory-card {
+    padding: 24px;
+}
+
+.inventory-card.comun {
+    border-color: rgba(148,163,184,0.24);
+}
+
+.inventory-card.raro {
+    border-color: rgba(59,130,246,0.38);
+}
+
+.inventory-card.epico {
+    border-color: rgba(168,85,247,0.42);
+}
+
+.inventory-card.legendario {
+    border-color: rgba(250,204,21,0.55);
+}
+
+.inventory-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.inventory-card h2 {
+    margin: 0 0 8px;
+    font-size: 24px;
+}
+
+.inventory-card p {
+    margin: 0 0 18px;
+    color: #cbd5e1;
+}
+
+.inventory-status {
+    padding: 8px 11px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    padding: 34px;
+    text-align: center;
+}
+
+.empty-state h2 {
+    margin: 0 0 10px;
+}
+
+.empty-state p {
+    color: #cbd5e1;
 }
 
 .dashboard-form {
@@ -1241,7 +1343,8 @@ nav a:hover {
     }
 
     .dashboard-stats,
-    .dashboard-form-grid {
+    .dashboard-form-grid,
+    .inventory-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 
@@ -1319,7 +1422,8 @@ nav a:hover {
     }
 
     .dashboard-stats,
-    .dashboard-form-grid {
+    .dashboard-form-grid,
+    .inventory-grid {
         grid-template-columns: 1fr;
     }
 
@@ -1386,6 +1490,8 @@ nav a:hover {
     color: white;
     font-size: 28px;
     font-weight: bold;
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: inset 0 0 34px rgba(255,255,255,0.08);
 }
 
 .lootbox-stage {
@@ -1411,6 +1517,7 @@ nav a:hover {
     width: max-content;
     transform: translateX(0);
     will-change: transform;
+    padding: 0 14px;
 }
 
 .spin-track {

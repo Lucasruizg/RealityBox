@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
@@ -22,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'is_admin',
+        'demo_balance',
     ];
 
     /**
@@ -44,7 +46,13 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'is_admin' => 'boolean',
+            'demo_balance' => 'decimal:2',
             'password' => 'hashed',
         ];
+    }
+
+    public function boxOpenings(): HasMany
+    {
+        return $this->hasMany(BoxOpening::class);
     }
 }
