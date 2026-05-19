@@ -11,6 +11,7 @@ Route::get('/open-box/{product}', [ProductController::class, 'open'])->name('pro
 
 Route::middleware('auth')->group(function () {
     Route::get('/inventory', [ProductController::class, 'inventory'])->name('inventory');
+    Route::get('/openings/{boxOpening}', [ProductController::class, 'openingResult'])->name('openings.show');
     Route::post('/openings/{boxOpening}/{action}', [ProductController::class, 'updateOpeningStatus'])
         ->whereIn('action', ['keep', 'redeem', 'sell'])
         ->name('openings.action');

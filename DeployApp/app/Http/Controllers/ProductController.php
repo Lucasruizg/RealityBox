@@ -199,31 +199,13 @@ class ProductController extends Controller
         }
 
         $probabilities = $this->getRewardProbabilities();
-        $rewards = $this->getRewardsByCategory();
-        $categoryRewards = $rewards[$product->category] ?? $rewards['default'];
-
-        $rarity = $this->rollRarity();
-        $reward = $this->getRandomRewardByRarity($categoryRewards, $rarity);
-
-        if (!$reward) {
-            $rarity = 'comun';
-            $reward = $this->getRandomRewardByRarity($categoryRewards, $rarity);
-        }
-
-        $sellPrice = round($reward['value'] * 0.70, 2);
+        $result = $this->generateRewardForProduct($product);
+        $reward = $result['reward'];
+        $sellPrice = $result['sellPrice'];
+        $rarity = $result['rarity'];
         $rarityLabel = $this->getRarityLabel($rarity);
         $rarityClass = $rarity;
-        $opening = BoxOpening::create([
-            'user_id' => $user?->id,
-            'session_id' => session()->getId(),
-            'product_id' => $product->id,
-            'product_name' => $product->name,
-            'reward_name' => $reward['name'],
-            'rarity' => $rarity,
-            'reward_value' => $reward['value'],
-            'sell_price' => $sellPrice,
-            'status' => 'pending',
-        ]);
+        $opening = $this->createOpeningFromResult($product, $result, $user?->id);
 
         if ($user) {
             $user->decrement('demo_balance', $product->price);
@@ -261,11 +243,47 @@ class ProductController extends Controller
         return view('inventory', compact('openings', 'stats'));
     }
 
+    public function openingResult(BoxOpening $boxOpening)
+    {
+        abort_unless($boxOpening->user_id === auth()->id(), 403);
+
+        $product = $boxOpening->product;
+
+        if (!$product) {
+            return redirect()
+                ->route('inventory')
+                ->with('status', 'La caja original ya no está disponible.');
+        }
+
+        $opening = $boxOpening;
+        $reward = [
+            'name' => $boxOpening->reward_name,
+            'value' => $boxOpening->reward_value,
+        ];
+        $sellPrice = $boxOpening->sell_price;
+        $rarity = $boxOpening->rarity;
+        $rarityLabel = $boxOpening->rarity_label;
+        $rarityClass = $boxOpening->rarity;
+        $probabilities = $this->getRewardProbabilities();
+
+        return view('products.open', compact(
+            'product',
+            'opening',
+            'reward',
+            'sellPrice',
+            'rarity',
+            'rarityLabel',
+            'rarityClass',
+            'probabilities'
+        ));
+    }
+
     public function updateOpeningStatus(BoxOpening $boxOpening, string $action)
     {
         abort_unless($boxOpening->user_id === auth()->id(), 403);
 
-        if ($boxOpening->status !== 'pending') {
+        if (($action === 'sell' && !in_array($boxOpening->status, ['pending', 'kept'], true))
+            || ($action !== 'sell' && $boxOpening->status !== 'pending')) {
             return back()->with('status', 'Esta recompensa ya fue gestionada.');
         }
 
@@ -281,8 +299,9 @@ class ProductController extends Controller
             auth()->user()->increment('demo_balance', $boxOpening->sell_price);
         }
 
-        return redirect()
-            ->route('inventory')
+        $redirectTo = $this->safeRedirectTo(request('redirect_to'));
+
+        return redirect($redirectTo ?: route('inventory'))
             ->with('status', 'Recompensa actualizada correctamente.');
     }
 
@@ -374,6 +393,50 @@ class ProductController extends Controller
         }
 
         return $filtered[array_rand($filtered)];
+    }
+
+    private function generateRewardForProduct(Product $product): array
+    {
+        $rewards = $this->getRewardsByCategory();
+        $categoryRewards = $rewards[$product->category] ?? $rewards['default'];
+
+        $rarity = $this->rollRarity();
+        $reward = $this->getRandomRewardByRarity($categoryRewards, $rarity);
+
+        if (!$reward) {
+            $rarity = 'comun';
+            $reward = $this->getRandomRewardByRarity($categoryRewards, $rarity);
+        }
+
+        return [
+            'reward' => $reward,
+            'rarity' => $rarity,
+            'sellPrice' => round($reward['value'] * 0.70, 2),
+        ];
+    }
+
+    private function createOpeningFromResult(Product $product, array $result, ?int $userId): BoxOpening
+    {
+        return BoxOpening::create([
+            'user_id' => $userId,
+            'session_id' => session()->getId(),
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'reward_name' => $result['reward']['name'],
+            'rarity' => $result['rarity'],
+            'reward_value' => $result['reward']['value'],
+            'sell_price' => $result['sellPrice'],
+            'status' => 'pending',
+        ]);
+    }
+
+    private function safeRedirectTo(?string $redirectTo): ?string
+    {
+        if (!$redirectTo || !str_starts_with($redirectTo, url('/'))) {
+            return null;
+        }
+
+        return $redirectTo;
     }
 
     private function getRarityLabel(string $rarity): string

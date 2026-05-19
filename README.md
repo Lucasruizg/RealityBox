@@ -1,57 +1,130 @@
 # RealityBox
 
-RealityBox es una aplicación web Laravel para una tienda de cajas sorpresa. Permite explorar cajas por categoría, consultar premios posibles, abrir una caja online con una ruleta de rarezas y administrar el catálogo desde un panel protegido para usuarios administradores.
+RealityBox es una aplicacion web hecha con Laravel para simular una tienda de cajas sorpresa. La tematica principal es la venta de cajas relacionadas con gaming, tecnologia, moda, cartas coleccionables y franquicias como Pokemon.
 
-## Características
+El proyecto permite navegar por un catalogo, consultar productos, registrarse, iniciar sesion, administrar productos desde un panel de administrador y simular la apertura online de cajas usando saldo demo.
 
-- Catálogo público de cajas sorpresa.
-- Buscador por nombre o descripción.
-- Filtros por categoría, rango de precio y ordenación.
-- Página de detalle con premios posibles, rarezas y probabilidades.
-- Simulación de apertura online con recompensa aleatoria.
-- Test de recomendación basado en intereses, estilo de premio y presupuesto.
-- Autenticación con Laravel Breeze.
-- Dashboard de administración para crear, editar y eliminar cajas.
-- Marcado de productos como populares o destacados.
+## Estado del Proyecto
 
-## Stack
+El proyecto cubre la mayoria de requisitos de una tienda sencilla en Laravel:
 
-- PHP `^8.2` y Laravel `^12.0`.
-- Laravel Breeze para autenticación.
-- Blade como motor de vistas.
-- SQLite por defecto en `.env.example`.
-- Tailwind/Vite instalado para assets base de Breeze.
-- CSS principal personalizado en `public/css/style.css`.
+- Registro funcional de usuarios.
+- Login funcional.
+- Catalogo publico de productos.
+- Detalle de producto.
+- Introduccion, edicion y eliminacion de productos desde un dashboard de administrador.
+- Simulacion de compra/apertura de cajas con saldo demo.
+- Inventario de recompensas para usuarios autenticados.
+- Diseno responsive con CSS personalizado.
+- Base de datos mediante migraciones, seeders y archivo SQLite incluido.
+
+Nota importante: actualmente no hay una cesta de compra clasica con cantidades, total y checkout. La simulacion de compra se realiza mediante la apertura de cajas con saldo demo.
+
+## Tecnologias Usadas
+
+- PHP 8.2 o superior.
+- Laravel 12.
+- Laravel Breeze para autenticacion.
+- Blade para las vistas.
+- MySQL configurado en `.env`.
+- SQLite incluido en `database/database.sqlite`.
+- CSS personalizado en `public/css/style.css`.
+- Vite y npm para assets base.
 - PHPUnit para tests.
 
 ## Requisitos
 
+Para ejecutar el proyecto necesitas:
+
 - PHP 8.2 o superior.
 - Composer.
 - Node.js y npm.
-- SQLite, o una base de datos compatible configurada en `.env`.
+- MySQL/MariaDB si usas la configuracion actual del `.env`.
+- Laragon, XAMPP o entorno equivalente en Windows.
 
-En este entorno se detectó PHP `8.4.13` y npm `11.6.2`. Composer no estaba disponible en el `PATH` al analizar el proyecto.
+## Instalacion
 
-## Instalación
+Entra en la carpeta del proyecto:
+
+```bash
+cd DeployApp
+```
+
+Instala dependencias de PHP:
 
 ```bash
 composer install
-npm install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
 ```
 
-Si usas SQLite, crea antes el archivo de base de datos si no existe:
+Instala dependencias de Node:
 
 ```bash
-type nul > database/database.sqlite
+npm install
 ```
 
-En Windows también puedes crearlo manualmente dentro de `database/`.
+Copia el archivo de entorno si no existe:
 
-## Ejecución
+```bash
+copy .env.example .env
+```
+
+Genera la clave de la aplicacion:
+
+```bash
+php artisan key:generate
+```
+
+## Configuracion de Base de Datos
+
+El archivo `.env` actual esta preparado para MySQL:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=deploysapps
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Antes de migrar, crea en MySQL una base de datos llamada:
+
+```text
+deploysapps
+```
+
+Despues ejecuta:
+
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
+Tambien existe un archivo SQLite en:
+
+```text
+DeployApp/database/database.sqlite
+```
+
+Si prefieres usar SQLite, cambia el `.env` a:
+
+```env
+DB_CONNECTION=sqlite
+DB_DATABASE=database/database.sqlite
+```
+
+## Usuarios de Prueba
+
+El seeder principal crea estos usuarios:
+
+| Rol | Email | Password |
+| --- | --- | --- |
+| Administrador | `admin@realitybox.local` | `1234` |
+| Usuario normal | `test@realitybox.local` | `1234` |
+
+El usuario administrador puede acceder al dashboard y gestionar productos.
+
+## Ejecutar el Proyecto
 
 Servidor Laravel:
 
@@ -59,33 +132,71 @@ Servidor Laravel:
 php artisan serve
 ```
 
-Assets con Vite:
+Servidor de assets:
 
 ```bash
 npm run dev
 ```
 
-Build de producción:
+Normalmente la aplicacion quedara disponible en:
 
-```bash
-npm run build
+```text
+http://127.0.0.1:8000
 ```
 
-El proyecto también incluye un script Composer para desarrollo que levanta servidor, cola, logs y Vite:
+Si usas Laragon, tambien puedes acceder mediante el dominio local que tengas configurado.
 
-```bash
-composer run dev
+## Funcionalidades
+
+### Registro
+
+El registro esta implementado con Laravel Breeze.
+
+Ruta:
+
+```text
+GET /register
+POST /register
 ```
 
-## Base de Datos
+Cuando un usuario se registra, se guarda en la tabla `users` con la contrasena encriptada.
 
-Tablas principales:
+### Login
 
-- `users`: usuarios autenticados. Incluye el campo `is_admin`.
-- `products`: cajas del catálogo.
-- `cache`, `jobs` y sesiones: tablas estándar generadas por Laravel.
+El login tambien esta implementado con Breeze.
 
-Campos de `products`:
+Ruta:
+
+```text
+GET /login
+POST /login
+```
+
+Al iniciar sesion, el usuario recibe saldo demo para abrir cajas.
+
+### Catalogo
+
+El catalogo muestra las cajas disponibles y permite:
+
+- Buscar por nombre o descripcion.
+- Filtrar por categoria.
+- Filtrar por rango de precio.
+- Ordenar por precio o valoracion.
+- Ver detalle de cada caja.
+
+Rutas:
+
+```text
+GET /
+GET /products
+GET /products/{product}
+```
+
+### Productos
+
+Los productos se guardan en la tabla `products`.
+
+Campos principales:
 
 - `name`
 - `description`
@@ -97,7 +208,7 @@ Campos de `products`:
 - `is_featured`
 - `is_popular`
 
-Categorías usadas por el dashboard:
+Categorias usadas:
 
 - `gaming`
 - `fitness`
@@ -107,172 +218,234 @@ Categorías usadas por el dashboard:
 - `cards`
 - `lowcost`
 
-## Seeders
+### Dashboard de Administrador
 
-Seeder base:
+El dashboard esta protegido por login y por el middleware `admin`.
 
-```bash
-php artisan db:seed
+Rutas:
+
+```text
+GET /dashboard
+GET /dashboard/products/create
+POST /dashboard/products
+GET /dashboard/products/{product}/edit
+PUT /dashboard/products/{product}
+DELETE /dashboard/products/{product}
 ```
 
-Este seeder crea un usuario de prueba:
+Desde el dashboard se pueden:
 
-- Email: `test@example.com`
+- Crear productos.
+- Editar productos.
+- Eliminar productos.
+- Marcar productos como populares.
+- Marcar productos como destacados.
 
-Seeder de administrador:
-
-```bash
-php artisan db:seed --class=AdminUserSeeder
-```
-
-Crea o actualiza el usuario administrador:
-
-- Email: `lucas@realitybox.local`
-- Password: `lucasrg01`
-
-Nota: estas credenciales están en el código del seeder y deberían cambiarse antes de usar el proyecto en un entorno real.
-
-## Rutas Principales
-
-Rutas públicas:
-
-- `GET /`: home con productos destacados, populares y categorías.
-- `GET /products`: catálogo con búsqueda, filtros y paginación.
-- `GET /products/{product}`: detalle de una caja.
-- `GET /open-box/{product}`: apertura online de una caja.
-- `GET /test`: test de recomendación.
-- `POST /resultado`: resultado del test.
-
-Rutas de autenticación:
-
-- `GET /login`
-- `POST /login`
-- `GET /register`
-- `POST /register`
-- `POST /logout`
-- Rutas de recuperación y confirmación de contraseña incluidas por Breeze.
-
-Rutas de administración, protegidas por `auth` y `admin`:
-
-- `GET /dashboard`
-- `GET /dashboard/products/create`
-- `POST /dashboard/products`
-- `GET /dashboard/products/{product}/edit`
-- `PUT /dashboard/products/{product}`
-- `DELETE /dashboard/products/{product}`
-
-## Funcionamiento de la Apertura
-
-La apertura de cajas se implementa en `ProductController::open`.
-
-Probabilidades:
-
-- Común: `72%`
-- Raro: `20%`
-- Épico: `7.2%`
-- Legendario: `0.8%`
-
-El controlador:
-
-1. Selecciona una rareza con `rollRarity()`.
-2. Busca recompensas de esa rareza para la categoría del producto.
-3. Calcula un precio de venta rápida del `70%` del valor estimado.
-4. Renderiza la vista `resources/views/products/open.blade.php`.
-
-Las recompensas están definidas actualmente en el propio `ProductController`, dentro de `getRewardsByCategory()`.
-
-## Panel de Administración
-
-El acceso al dashboard requiere:
-
-- Usuario autenticado.
-- Campo `is_admin = true`.
-
-El middleware `admin` está definido en `app/Http/Middleware/AdminMiddleware.php` y registrado en `bootstrap/app.php`.
-
-Desde el dashboard se pueden gestionar:
-
-- Nombre.
-- Categoría.
-- Precio.
-- Imagen.
-- Rating.
-- Número de reviews.
-- Descripción.
-- Estado popular.
-- Estado destacado.
-
-Las imágenes de producto deben existir en:
+Las imagenes deben estar en:
 
 ```text
 public/images/products/
 ```
 
-El formulario guarda solo el nombre del archivo, por ejemplo:
+En el formulario solo se guarda el nombre del archivo, por ejemplo:
 
 ```text
 gamer-pro.png
 ```
 
+### Simulacion de Compra
+
+El proyecto no usa una cesta tradicional. En su lugar, simula la compra mediante apertura de cajas.
+
+Funcionamiento:
+
+1. El usuario elige una caja.
+2. Pulsa en abrir caja.
+3. Se descuenta el precio del saldo demo si el usuario esta autenticado.
+4. Se genera una recompensa aleatoria.
+5. La recompensa se guarda en el inventario del usuario.
+6. El usuario puede guardarla, canjearla o venderla por saldo demo.
+
+Rutas relacionadas:
+
+```text
+GET /open-box/{product}
+GET /inventory
+GET /openings/{boxOpening}
+POST /openings/{boxOpening}/{action}
+```
+
+Acciones disponibles:
+
+- `keep`: guardar recompensa.
+- `redeem`: canjear recompensa.
+- `sell`: vender recompensa.
+
+### Inventario
+
+Los usuarios autenticados pueden ver sus aperturas y recompensas desde:
+
+```text
+GET /inventory
+```
+
+El inventario muestra:
+
+- Premio obtenido.
+- Caja de origen.
+- Rareza.
+- Valor estimado.
+- Precio de venta rapida.
+- Estado de la recompensa.
+
+### Test de Recomendacion
+
+El proyecto incluye un test que recomienda una caja segun intereses, estilo de premio y presupuesto.
+
+Rutas:
+
+```text
+GET /test
+POST /resultado
+```
+
+## Probabilidades de Recompensa
+
+Las aperturas usan estas probabilidades:
+
+| Rareza | Probabilidad |
+| --- | --- |
+| Comun | 72% |
+| Raro | 20% |
+| Epico | 7.2% |
+| Legendario | 0.8% |
+
+El valor de venta rapida se calcula como el 70% del valor estimado de la recompensa.
+
+## Base de Datos
+
+Tablas principales:
+
+- `users`: usuarios registrados.
+- `products`: productos/cajas del catalogo.
+- `box_openings`: aperturas realizadas y recompensas obtenidas.
+- `sessions`: sesiones de Laravel.
+- `cache`: cache de Laravel.
+- `jobs`: cola de trabajos.
+
+Migraciones relevantes:
+
+```text
+database/migrations/0001_01_01_000000_create_users_table.php
+database/migrations/2026_04_22_071635_create_products_table.php
+database/migrations/2026_04_22_080804_add_store_fields_to_products_table.php
+database/migrations/2026_04_29_100000_add_is_admin_to_users_table.php
+database/migrations/2026_05_13_100000_add_demo_balance_to_users_table.php
+database/migrations/2026_05_13_100001_create_box_openings_table.php
+```
+
+## Rutas Principales
+
+Publicas:
+
+```text
+GET /
+GET /products
+GET /products/{product}
+GET /open-box/{product}
+GET /test
+POST /resultado
+```
+
+Autenticacion:
+
+```text
+GET /login
+POST /login
+GET /register
+POST /register
+POST /logout
+```
+
+Usuario autenticado:
+
+```text
+GET /inventory
+GET /openings/{boxOpening}
+POST /openings/{boxOpening}/{action}
+```
+
+Administrador:
+
+```text
+GET /dashboard
+GET /dashboard/products/create
+POST /dashboard/products
+GET /dashboard/products/{product}/edit
+PUT /dashboard/products/{product}
+DELETE /dashboard/products/{product}
+```
+
 ## Estructura del Proyecto
 
 ```text
-app/
-  Http/
-    Controllers/
-      ProductController.php
-      ProfileController.php
-    Middleware/
-      AdminMiddleware.php
-  Models/
-    Product.php
-    User.php
+DeployApp/
+  app/
+    Http/
+      Controllers/
+        ProductController.php
+      Middleware/
+        AdminMiddleware.php
+    Models/
+      Product.php
+      User.php
+      BoxOpening.php
 
-database/
-  migrations/
-  seeders/
+  database/
+    migrations/
+    seeders/
+    database.sqlite
 
-public/
-  css/style.css
-  images/products/
+  public/
+    css/
+      style.css
+    images/
+      products/
 
-resources/
-  views/
-    welcome.blade.php
-    products/
-    dashboard.blade.php
-    dashboard-form.blade.php
-    test.blade.php
-    resultado.blade.php
+  resources/
+    views/
+      auth/
+      products/
+      layouts/
+      dashboard.blade.php
+      dashboard-form.blade.php
+      inventory.blade.php
+      test.blade.php
+      resultado.blade.php
+      welcome.blade.php
 
-routes/
-  web.php
-  auth.php
+  routes/
+    web.php
+    auth.php
 ```
 
 ## Tests
 
-Ejecutar la suite:
+Ejecutar tests:
 
 ```bash
 php artisan test
 ```
 
-O mediante el script de Composer:
+Tambien:
 
 ```bash
 composer test
 ```
 
-El proyecto conserva tests base de Laravel Breeze para autenticación y perfil.
+Aviso: algunos tests base de Breeze pueden estar desactualizados respecto a las redirecciones actuales del proyecto. El registro y login redirigen a `home`, no al dashboard.
 
-## Comandos Útiles
-
-Limpiar caché de configuración:
-
-```bash
-php artisan config:clear
-```
+## Comandos Utiles
 
 Ver rutas:
 
@@ -280,17 +453,46 @@ Ver rutas:
 php artisan route:list
 ```
 
-Recrear base de datos local:
+Limpiar configuracion:
+
+```bash
+php artisan config:clear
+```
+
+Recrear base de datos con seeders:
 
 ```bash
 php artisan migrate:fresh --seed
-php artisan db:seed --class=AdminUserSeeder
 ```
 
-## Notas de Desarrollo
+Ejecutar solo el seeder de productos:
 
-- El layout público usado por la tienda está en `resources/views/layouts/app.blade.php`.
-- El archivo `resources/views/layouts/navigation.blade.php` pertenece al layout original de Breeze y no es el menú principal actual de la tienda.
-- El CSS visual de RealityBox está centralizado en `public/css/style.css`.
-- El controlador `ProductController` concentra catálogo, dashboard, test y lógica de premios. Si el proyecto crece, conviene separar la lógica de recompensas y recomendación en servicios propios.
-- Algunas cadenas muestran caracteres mal codificados en los archivos (`ComÃºn`, `Ã‰pico`, etc.). Conviene normalizar los archivos a UTF-8 y corregir esos textos.
+```bash
+php artisan db:seed --class=ProductSeeder
+```
+
+## Evaluacion Segun el Enunciado
+
+| Requisito | Estado |
+| --- | --- |
+| Entrega de codigo base Laravel | Cumple |
+| Entrega de base de datos | Cumple mediante migraciones, seeders y SQLite incluido |
+| Registro funcional | Cumple |
+| Login funcional | Cumple |
+| Introducir productos a vender | Cumple desde dashboard admin |
+| Simulacion cesta de compra | Parcial: se simula con saldo demo y apertura de cajas |
+| Buen Look & Feel | Cumple |
+| Responsive | Cumple |
+
+## Mejoras Pendientes
+
+Para que el proyecto cumpla mejor una entrega de e-commerce clasico, se podrian anadir:
+
+- Cesta de compra tradicional.
+- Cantidades por producto.
+- Total de compra.
+- Confirmacion de pedido.
+- Historial de pedidos.
+- Pasarela de pago simulada.
+
+Estas mejoras no son imprescindibles para la simulacion actual de RealityBox, pero reforzarian el requisito de "cistella de compra".

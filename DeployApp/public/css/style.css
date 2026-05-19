@@ -913,6 +913,11 @@ nav a:hover {
     text-align: center;
 }
 
+.btn:disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+}
+
 .btn-open-box {
     background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6);
     color: #fff;

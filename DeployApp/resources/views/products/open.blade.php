@@ -24,6 +24,12 @@
 
 <section class="section container">
     <div class="open-box-wrapper">
+        @if(session('status'))
+            <div class="dashboard-alert">
+                {{ session('status') }}
+            </div>
+        @endif
+
         <span class="tag">Apertura online</span>
         <h1>Has abierto {{ $product->name }}</h1>
         <p class="open-box-subtitle">La ruleta está girando. Cuando se detenga, el marcador señalará tu rareza final.</p>
@@ -33,17 +39,17 @@
                 <div class="lootbox-track" id="lootboxTrack">
                     @foreach($beforeItems as $item)
                         <div class="lootbox-item {{ $item }}">
-                            {{ strtoupper($rarityNames[$item]) }}
+                            {{ $rarityNames[$item] }}
                         </div>
                     @endforeach
 
                     <div class="lootbox-item {{ $rarityClass }}" id="winnerItem">
-                        {{ strtoupper($rarityLabel) }}
+                        {{ $rarityLabel }}
                     </div>
 
                     @foreach($afterItems as $item)
                         <div class="lootbox-item {{ $item }}">
-                            {{ strtoupper($rarityNames[$item]) }}
+                            {{ $rarityNames[$item] }}
                         </div>
                     @endforeach
                 </div>
@@ -81,19 +87,29 @@
 
         <div class="hero-actions center hidden-reward" id="rewardActions">
             @auth
-                <form action="{{ route('openings.action', [$opening, 'keep']) }}" method="POST">
-                    @csrf
-                    <button class="btn btn-primary" type="submit">Quedármelo</button>
-                </form>
-                <form action="{{ route('openings.action', [$opening, 'redeem']) }}" method="POST">
-                    @csrf
-                    <button class="btn btn-secondary" type="submit">Canjearlo</button>
-                </form>
-                <form action="{{ route('openings.action', [$opening, 'sell']) }}" method="POST">
-                    @csrf
-                    <button class="btn btn-dark" type="submit">Venderlo</button>
-                </form>
+                @if($opening->status === 'pending')
+                    <form action="{{ route('openings.action', [$opening, 'keep']) }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="redirect_to" value="{{ route('openings.show', $opening) }}">
+                        <button class="btn btn-primary" type="submit">Quedármelo</button>
+                    </form>
+                    <form action="{{ route('openings.action', [$opening, 'redeem']) }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="redirect_to" value="{{ route('openings.show', $opening) }}">
+                        <button class="btn btn-secondary" type="submit">Canjearlo</button>
+                    </form>
+                    <form action="{{ route('openings.action', [$opening, 'sell']) }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="redirect_to" value="{{ route('openings.show', $opening) }}">
+                        <button class="btn btn-dark" type="submit">Venderlo</button>
+                    </form>
+                @else
+                    <span class="inventory-status">Estado: {{ $opening->status_label }}</span>
+                @endif
             @else
+                <button class="btn btn-primary" type="button" disabled>Quedármelo</button>
+                <button class="btn btn-secondary" type="button" disabled>Canjearlo</button>
+                <button class="btn btn-dark" type="button" disabled>Venderlo</button>
                 <a href="{{ route('login') }}" class="btn btn-primary">Inicia sesión para guardarlo</a>
             @endauth
         </div>
@@ -109,6 +125,7 @@
         </div>
 
         <div class="hero-actions center">
+            <a href="{{ route('products.open', $product->id) }}" class="btn btn-open-box">Volver a abrir la caja</a>
             <a href="{{ route('products.show', $product->id) }}" class="btn btn-secondary">Volver a la caja</a>
             <a href="{{ route('products.index') }}" class="btn btn-secondary">Seguir explorando</a>
         </div>

@@ -70,14 +70,25 @@
                     <div class="hero-actions">
                         <form action="{{ route('openings.action', [$opening, 'keep']) }}" method="POST">
                             @csrf
+                            <input type="hidden" name="redirect_to" value="{{ url()->full() }}">
                             <button class="btn btn-primary" type="submit">Guardar</button>
                         </form>
                         <form action="{{ route('openings.action', [$opening, 'redeem']) }}" method="POST">
                             @csrf
+                            <input type="hidden" name="redirect_to" value="{{ url()->full() }}">
                             <button class="btn btn-secondary" type="submit">Canjear</button>
                         </form>
                         <form action="{{ route('openings.action', [$opening, 'sell']) }}" method="POST">
                             @csrf
+                            <input type="hidden" name="redirect_to" value="{{ url()->full() }}">
+                            <button class="btn btn-dark" type="submit">Vender</button>
+                        </form>
+                    </div>
+                @elseif($opening->status === 'kept')
+                    <div class="hero-actions">
+                        <form action="{{ route('openings.action', [$opening, 'sell']) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="redirect_to" value="{{ url()->full() }}">
                             <button class="btn btn-dark" type="submit">Vender</button>
                         </form>
                     </div>
