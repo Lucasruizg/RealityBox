@@ -10,22 +10,28 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::query()->delete();
+        if (! app()->environment('local', 'testing')) {
+            return;
+        }
 
-        User::create([
-            'name' => 'admin',
-            'email' => 'admin@realitybox.local',
-            'password' => Hash::make('1234'),
-            'is_admin' => true,
-            'demo_balance' => 500,
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@realitybox.local'],
+            [
+                'name' => 'admin',
+                'password' => Hash::make('1234'),
+                'is_admin' => true,
+                'demo_balance' => 500,
+            ]
+        );
 
-        User::create([
-            'name' => 'test',
-            'email' => 'test@realitybox.local',
-            'password' => Hash::make('1234'),
-            'is_admin' => false,
-            'demo_balance' => 250,
-        ]);
+        User::firstOrCreate(
+            ['email' => 'test@realitybox.local'],
+            [
+                'name' => 'test',
+                'password' => Hash::make('1234'),
+                'is_admin' => false,
+                'demo_balance' => 250,
+            ]
+        );
     }
 }
